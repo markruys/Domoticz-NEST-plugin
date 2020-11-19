@@ -24,18 +24,37 @@
 import time
 from datetime import datetime
 import json
-import requests
 import traceback
-import pytz
-import tzlocal
 
 try:
     import Domoticz
     def log(msg=""):
         Domoticz.Debug(">> {}".format(msg))
+    def error(msg=""):
+        Domoticz.Error(msg)
 except:
     def log(msg=""):
         print(msg)
+    def error(msg=""):
+        print(msg)
+
+try:
+    import pytz
+except:
+    # We don't have logging yet, so just ignore the failure for now
+    pass
+
+try:
+    import requests
+except:
+    # We don't have logging yet, so just ignore the failure for now
+    pass
+
+try:
+    import tzlocal
+except:
+    # We don't have logging yet, so just ignore the failure for now
+    pass
 
 class Nest():
 
@@ -120,6 +139,8 @@ class Nest():
                 log("Got bearer token")
                 return True
 
+        except NameError:
+            self._nest_access_error = "Please install module requests and restart"
         except requests.exceptions.Timeout as e:
             self._nest_access_error = 'API request timed out'
         except requests.exceptions.ConnectionError as e:
@@ -195,7 +216,18 @@ class Nest():
 
     def GetNestCredentials(self):
         #self._ReadCache()
-        current_time = datetime.now(pytz.utc).astimezone(tzlocal.get_localzone())
+        try:
+            tz = tzlocal.get_localzone()
+        except NameError:
+            self._nest_access_error = "Please install module tzlocal and restart"
+            return False
+
+        try:
+            current_time = datetime.now(pytz.utc).astimezone(tz)
+        except NameError:
+            self._nest_access_error = "Please install module pytz and restart"
+            return False
+
         if self._cache_expiration is not None:
             if self._cache_expiration > current_time:
                 return True
